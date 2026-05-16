@@ -29,7 +29,8 @@ namespace FluxPOS
             // Se crea la conexión y la tabla si no existen al iniciar la app 
             using (SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
             {
-                conexion.CreateTable<Producto>();
+                conexion.CreateTable<Producto>(); //tabla inventario
+                conexion.CreateTable<Venta>(); //tabla para historial de ventas
             }
 
             CargarProductos();
@@ -109,6 +110,44 @@ namespace FluxPOS
                 //actualizo el total de la venta actual
                 ActualizarTotalVenta();
             }
+        }
+
+        private void btnFinalizarCompra_Click(object sender, RoutedEventArgs e)
+        {
+            //validar que haya algo en el carrito
+            if(listaCarrito.Count == 0)
+            {
+                MessageBox.Show("El carrito esta vacío. Añade productos antes de finalizar.");
+                return; //detiene la ejecucion del metodo
+            }
+
+            //calcula el total recorriendo los elementos actuales del carrito
+            decimal totalVenta = 0;
+            foreach(Producto p in listaCarrito)
+            {
+                totalVenta += p.Precio;
+            }
+
+            //fabrica el objeto venta (ticket) con los datos listos
+            Venta nuevaVenta = new Venta
+            {
+                Fecha = DateTime.Now, //captura la fecha y hora actual de la computadora
+                Total = totalVenta
+            };
+
+            //se abre una conexion segura y guarda fisicamente en el disco duro
+            using (SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
+            {
+                conexion.Insert(nuevaVenta);
+            }
+
+            //avisa al usuario del exito de la transaccion
+            MessageBox.Show($"¡Venta realizada con éxito!\nTicket N°: {nuevaVenta.Id}\nTotal Cobrado: ${totalVenta:N2}");
+
+            //limpia el carrito (RAM e interfaz) para la proxima venta
+            listaCarrito.Clear();
+            lstCarrito.Items.Clear();
+            ActualizarTotalVenta(); //reinicia el contador a 0
         }
 
         #endregion

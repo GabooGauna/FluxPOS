@@ -116,7 +116,8 @@
                             Content="✔ FINALIZAR VENTA"
                             Height="55"
                             Background="#2ECC71" Foreground="White"
-                            FontSize="18" FontWeight="Black"/>
+                            FontSize="18" FontWeight="Black"
+                            Click="btnFinalizarCompra_Click"/>
                 </StackPanel>
             </Grid>
         </Border>
