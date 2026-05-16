@@ -54,7 +54,8 @@
                      Grid.Row="1"
                      Margin="0,15,0,15"
                      BorderBrush="#DFE6E9"
-                     BorderThickness="1"/>
+                     BorderThickness="1"
+                     MouseDoubleClick="lstProductos_MouseDoubleClick" />
 
             <Button x:Name="btnEliminar"
                     Grid.Row="2"
@@ -64,6 +65,17 @@
                     HorizontalAlignment="Left"
                     FontWeight="SemiBold"
                     Click="btnEliminar_Click"/>
+            
+            <TextBlock x:Name="lblTotalInventario"
+                       Grid.Row="2" Grid.Column="0"
+                       Text="Valor de Inventario: $0.00"
+                       FontSize="15" FontWeight="SemiBold"
+                       Foreground="#57606F"
+                       HorizontalAlignment="Right"
+                       VerticalAlignment="Bottom"
+                       Margin="0,0,10,14"
+                
+                />
         </Grid>
 
         <Border Grid.Column="1" Grid.RowSpan="3" 

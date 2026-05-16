@@ -22,6 +22,8 @@ namespace FluxPOS
 
         //Definir la lista
         List<Producto> listaDeProductos = new List<Producto>();
+        //Lista para productos que el cliente va comprando en el momento
+        List<Producto> listaCarrito = new List<Producto>();
         public MainWindow()
         {
             InitializeComponent();
@@ -75,7 +77,7 @@ namespace FluxPOS
                 suma = suma + p.Precio; //se acumula el precio de cada producto
             }
             //Se muestra el resultado de la acumulacion en la interfaz
-            lblTotal.Text = "Total: $" + suma.ToString("N2");
+            lblTotalInventario.Text = "Valor del Inventario: $" + suma.ToString("N2");
         }
         private void CargarProductos()
         {
@@ -121,6 +123,36 @@ namespace FluxPOS
             {
                 MessageBox.Show("Por favor, selecciona un producto de la lista para eliminar.");
             }
+        }
+
+        private void lstProductos_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            //verifico que haya algo seleccionado
+            if (lstProductos.SelectedIndex != -1)
+            {
+                //obtengo el producto seleccionado de la lista de inventario
+                Producto seleccionado = listaDeProductos[lstProductos.SelectedIndex];
+
+                //lo agrego a la lista del carrito (en la RAM)
+                listaCarrito.Add(seleccionado);
+
+                //lo muestro en la list box de la derecha
+                lstCarrito.Items.Add($"{seleccionado.Nombre} - ${seleccionado.Precio:N2}");
+
+                //actualizo el total de la venta actual
+                ActualizarTotalVenta();
+            }
+        }
+
+        private void ActualizarTotalVenta()
+        {
+            decimal sumaVenta = 0;
+            foreach(Producto p in listaCarrito)
+            {
+                sumaVenta += p.Precio;
+            }
+            // lblTotal es el nombre del Textblock que esta en la zona del carrito
+            lblTotal.Text = "Total Venta: $" + sumaVenta.ToString("N2");
         }
 
         public class Producto
