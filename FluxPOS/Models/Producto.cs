@@ -12,5 +12,8 @@ namespace FluxPOS.Models
 
         public string Nombre { get; set; }
         public decimal Precio { get; set; }
+
+        //controla las unidades disponibles en el negocio
+        public int Stock { get; set; }
     }
 }

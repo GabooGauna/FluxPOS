@@ -40,30 +40,40 @@ namespace FluxPOS
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
+            //se valida que el precio final sea decimal y el stock un numero entero
             if (decimal.TryParse(txtPrecio.Text, out decimal precioFinal))
             {
-                // Creación del objeto Producto utilizando la sintaxis moderna 
-                Producto nuevoProducto = new Producto
+                if (int.TryParse(txtStock.Text, out int stockFinal))
                 {
-                    Nombre = txtNombre.Text,
-                    Precio = precioFinal
-                };
+                    // Creación del objeto Producto incluyendo la prop stock
+                    Producto nuevoProducto = new Producto
+                    {
+                        Nombre = txtNombre.Text,
+                        Precio = precioFinal,
+                        Stock = stockFinal //se guarda el stock inicial
+                    };
 
-                // Persistencia: Guardado físico en SQLite [cite: 190]
-                using (SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
-                {
-                    conexion.Insert(nuevoProducto);
+                    // Persistencia: Guardado físico en SQLite [cite: 190]
+                    using (SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
+                    {
+                        conexion.Insert(nuevoProducto);
+                    }
+
+                    // Actualización inmediata de la interfaz de usuario mostrando las unidades disponibles 
+                    listaDeProductos.Add(nuevoProducto);
+                    lstProductos.Items.Add($"{nuevoProducto.Nombre} - ${nuevoProducto.Precio:N2} [Stock: {nuevoProducto.Stock}]");
+
+                    ActualizarTotal();
+
+                    // Limpieza de campos para el siguiente registro 
+                    txtNombre.Clear();
+                    txtPrecio.Clear();
+                    txtStock.Clear();
                 }
-
-                // Actualización inmediata de la interfaz de usuario 
-                listaDeProductos.Add(nuevoProducto);
-                lstProductos.Items.Add($"{nuevoProducto.Nombre} - ${nuevoProducto.Precio:N2}");
-
-                ActualizarTotal();
-
-                // Limpieza de campos para el siguiente registro 
-                txtNombre.Clear();
-                txtPrecio.Clear();
+                else
+                {
+                    MessageBox.Show("Por favor, ingresa una cantidad de stock entera y válida");
+                }
             }
             else
             {
@@ -166,7 +176,7 @@ namespace FluxPOS
                 foreach (var p in productosDeBaseDeDatos)
                 {
                     listaDeProductos.Add(p);
-                    lstProductos.Items.Add($"{p.Nombre} - ${p.Precio:N2}");
+                    lstProductos.Items.Add($"{p.Nombre} - ${p.Precio:N2} [Stock: {p.Stock}]");
                 }
             }
             ActualizarTotal();

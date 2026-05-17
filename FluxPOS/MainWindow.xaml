@@ -36,6 +36,11 @@
             <TextBox x:Name="txtPrecio" Height="30" VerticalContentAlignment="Center" Padding="5,0"/>
         </StackPanel>
 
+        <StackPanel Grid.Row="1" Grid.Column="0" Margin="15,57,15,5">
+            <TextBlock Text="Stock Inicial (Unidades):" FontWeight="SemiBold" Foreground="#2D3436" Margin="0,5,0,5"/>
+            <TextBox x:Name="txtStock" Height="30" VerticalContentAlignment="Center" Padding="5,0"/>
+        </StackPanel>
+
         <Grid Grid.Row="2" Grid.Column="0" Margin="15,10,15,15">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
