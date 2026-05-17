@@ -18,7 +18,7 @@ namespace FluxPOS
             "FluxPOS.db"
         );
 
-        // Listas de memoria RAM protegidas con readonly [cite: 825]
+        // Listas de memoria RAM protegidas con readonly 
         private readonly List<Producto> listaDeProductos = new List<Producto>();
         private readonly List<Producto> listaCarrito = new List<Producto>();
 
@@ -54,7 +54,7 @@ namespace FluxPOS
                         Stock = stockFinal //se guarda el stock inicial
                     };
 
-                    // Persistencia: Guardado físico en SQLite [cite: 190]
+                    // Persistencia: Guardado físico en SQLite 
                     using (SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
                     {
                         conexion.Insert(nuevoProducto);
@@ -234,12 +234,12 @@ namespace FluxPOS
 
         private void ActualizarTotal()
         {
-            decimal suma = 0;
+            decimal sumaTotalInventario = 0;
             foreach (Producto p in listaDeProductos)
             {
-                suma += p.Precio;
+                sumaTotalInventario += (p.Precio * p.Stock);
             }
-            lblTotalInventario.Text = "Valor del Inventario: $" + suma.ToString("N2");
+            lblTotalInventario.Text = "Valor del Inventario: $" + sumaTotalInventario.ToString("N2");
         }
 
         private void ActualizarTotalVenta()
