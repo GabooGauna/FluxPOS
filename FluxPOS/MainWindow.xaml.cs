@@ -30,7 +30,8 @@ namespace FluxPOS
             using (SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
             {
                 conexion.CreateTable<Producto>(); //tabla inventario
-                conexion.CreateTable<Venta>(); //tabla para historial de ventas
+                conexion.CreateTable<Venta>(); //tabla para historial de ventas. Tickets (maestro)
+                conexion.CreateTable<DetalleVenta>(); //renglones de Productos (tabla intermedia)
             }
 
             CargarProductos();
@@ -149,14 +150,63 @@ namespace FluxPOS
             using (SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
             {
                 conexion.Insert(nuevaVenta);
+                /*procesar el stock y los detalles
+                para no repetir el mismo producto, se crea un diccionario temporal en la RAM
+                teniendo como clave la ID del Producto, el valor va a ser un objeto DetalleVenta agrupado*/
+                Dictionary<int, DetalleVenta> detallesAgrupados = new Dictionary<int, DetalleVenta>();
+
+                foreach (Producto p in listaCarrito)
+                {
+                    if (detallesAgrupados.ContainsKey(p.Id))
+                    {
+                        //si el producto ya aparecio en el carrito, le sumamos 1 a la cantidad de ese renglon
+                        detallesAgrupados[p.Id].Cantidad += 1;
+                    }
+                    else
+                    {
+                        //si es la primera vez que aparece el producto en el ticket, fabrica su renglon historico
+                        DetalleVenta nuevoRenglon = new DetalleVenta
+                        {
+                            VentaId = nuevaVenta.Id, //enlaza el renglon con el ID del ticket recien generado
+                            ProductoId = p.Id,
+                            NombreProducto = p.Nombre,
+                            Cantidad = 1, //inicia con la primera unidad
+                            PrecioCobrado = p.Precio //congela el precio actual por seguridad historica
+                        };
+                        detallesAgrupados.Add(p.Id, nuevoRenglon);
+                    }
+                }
+
+                //ahora recorre los detalles agrupados para impactar fisicamente la db
+                foreach(var par in detallesAgrupados)
+                {
+                    DetalleVenta detalleAFijar = par.Value;
+                    // a) graba de forma persistente el renglón en la tabla intermedia de SQLite
+                    conexion.Insert(detalleAFijar);
+
+                    // b) ALGORITMO DE DESCUENTO: busca el producto real en el inventario físico mediante su ID 
+                    Producto productoEnInventario = conexion.Table<Producto>().FirstOrDefault(x => x.Id == detalleAFijar.ProductoId);
+
+                    if(productoEnInventario != null)
+                    {
+                        //resta las unidades que el cliente compro del stock actual en la bd
+                        productoEnInventario.Stock -= detalleAFijar.Cantidad;
+
+                        //actualiza el producto con su nuevo stock modificado
+                        conexion.Update(productoEnInventario);
+                    }
+                }
             }
 
             //avisa al usuario del exito de la transaccion
-            MessageBox.Show($"¡Venta realizada con éxito!\nTicket N°: {nuevaVenta.Id}\nTotal Cobrado: ${totalVenta:N2}");
+            MessageBox.Show($"¡Venta realizada con éxito!\nTicket N°: {nuevaVenta.Id}\nTotal Cobrado: ${totalVenta:N2}\n\nEl stock ha sido actualizado correctamente.");
 
             //limpia el carrito (RAM e interfaz) para la proxima venta
             listaCarrito.Clear();
             lstCarrito.Items.Clear();
+
+            //refresca la lista izquierda para ver el nuevo stock y recalcula totales
+            CargarProductos();
             ActualizarTotalVenta(); //reinicia el contador a 0
         }
 
