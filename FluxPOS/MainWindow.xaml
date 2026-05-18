@@ -5,7 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FluxPOS"
         mc:Ignorable="d"
-        Title="FluxPOS - Terminal de Ventas" Height="500" Width="950">
+        Title="FluxPOS - Terminal de Ventas" Height="550" Width="1000"
+        WindowStartupLocation="CenterScreen">
 
     <Window.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
@@ -14,125 +15,162 @@
         </LinearGradientBrush>
     </Window.Background>
 
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="1.2*" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+    <Grid Margin="10">
+        <TabControl x:Name="tcPrincipal" 
+                    Background="Transparent" 
+                    BorderThickness="0"
+                    SelectionChanged="tcPrincipal_SelectionChanged">
 
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+            <TabItem Header="🛒 Terminal de Cobro" FontSize="14" FontWeight="SemiBold" Padding="15,6">
+                <Grid Background="Transparent" Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.2*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Row="0" Grid.Column="0" Margin="15,10,15,5">
-            <TextBlock Text="Nombre del Producto:" FontWeight="SemiBold" Foreground="#2D3436" Margin="0,0,0,5"/>
-            <TextBox x:Name="txtNombre" Height="30" VerticalContentAlignment="Center" Padding="5,0"/>
-        </StackPanel>
+                    <Grid Grid.Column="0" Margin="0,0,15,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="1" Grid.Column="0" Margin="15,5,15,5">
-            <TextBlock Text="Precio:" FontWeight="SemiBold" Foreground="#2D3436" Margin="0,0,0,5"/>
-            <TextBox x:Name="txtPrecio" Height="30" VerticalContentAlignment="Center" Padding="5,0"/>
-        </StackPanel>
+                        <TextBlock Text="🛍️ Productos Disponibles (Doble clic para vender)" 
+                                   FontSize="15" FontWeight="Bold" Foreground="#2D3436" Margin="0,0,0,5"/>
 
-        <StackPanel Grid.Row="1" Grid.Column="0" Margin="15,57,15,5">
-            <TextBlock Text="Stock Inicial (Unidades):" FontWeight="SemiBold" Foreground="#2D3436" Margin="0,5,0,5"/>
-            <TextBox x:Name="txtStock" Height="30" VerticalContentAlignment="Center" Padding="5,0"/>
-        </StackPanel>
+                        <Grid Grid.Row="1" Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="🔍 Buscar:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#57606F" Margin="0,0,8,0"/>
+                            <TextBox x:Name="txtBuscar" Grid.Column="1" Height="28" VerticalContentAlignment="Center" Padding="5,0"
+                                     TextChanged="txtBuscar_TextChanged"/>
+                        </Grid>
 
-        <Grid Grid.Row="2" Grid.Column="0" Margin="15,10,15,15">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+                        <ListBox x:Name="lstProductos"
+                                 Grid.Row="2"
+                                 BorderBrush="#DFE6E9"
+                                 BorderThickness="1"
+                                 Background="White"
+                                 MouseDoubleClick="lstProductos_MouseDoubleClick" />
+                    </Grid>
 
-            <Button Content="✚ Agregar al Inventario"
-                    Width="200" Height="40"
-                    FontSize="14" FontWeight="Bold"
-                    Background="#0984E3" Foreground="White"
-                    HorizontalAlignment="Left"
-                    Click="Button_Click"/>
+                    <Border Grid.Column="1" 
+                            Background="WhiteSmoke" 
+                            BorderBrush="#B2BEC3" 
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="15">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
-            <TextBlock x:Name="lblTotalInventario"
-                       Grid.Row="1"
-                       Text="Valor de Inventario: $0.00"
-                       FontSize="14" FontWeight="Bold"
-                       Foreground="#57606F"
-                       HorizontalAlignment="Left"
-                       Margin="0,12,0,4" />
+                            <TextBlock Grid.Row="0"
+                                       Text="📋 Ticket de Venta Actual"
+                                       FontSize="18" FontWeight="Bold"
+                                       Foreground="#2D3436"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,10"/>
 
-            <ListBox x:Name="lstProductos"
-                     Grid.Row="2"
-                     Margin="0,5,0,15"
-                     BorderBrush="#DFE6E9"
-                     BorderThickness="1"
-                     MouseDoubleClick="lstProductos_MouseDoubleClick" />
+                            <ListBox x:Name="lstCarrito" 
+                                     Grid.Row="1"
+                                     BorderBrush="#DFE6E9"
+                                     Background="White"
+                                     Margin="0,5"/>
 
-            <StackPanel Grid.Row="3" Orientation="Horizontal">
+                            <StackPanel Grid.Row="2" Margin="0,10,0,0">
+                                <Separator Background="#DFE6E9" Margin="0,0,0,10"/>
+                                <TextBlock x:Name="lblTotal"
+                                           Text="Total: $0.00"
+                                           FontSize="26" FontWeight="ExtraBold"
+                                           Foreground="#27AE60"
+                                           HorizontalAlignment="Right"
+                                           Margin="0,0,0,10" />
 
-                <Button x:Name="btnRestarStock"
-                        Content="➖ Restar 1 Unidad"
-                        Width="160" Height="35"
-                        Background="#E67E22" Foreground="White"
-                        FontWeight="SemiBold"
-                        Margin="0,0,10,0"
-                        Click="btnRestarStock_Click" />
+                                <Button x:Name="btnFinalizarCompra"
+                                        Content="✔ FINALIZAR VENTA"
+                                        Height="50"
+                                        Background="#2ECC71" Foreground="White"
+                                        FontSize="16" FontWeight="Black"
+                                        Click="btnFinalizarCompra_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
 
-                <Button x:Name="btnEliminar"
-                        Content="🗑 Eliminar Catálogo"
-                        Width="160" Height="35"
-                        Background="#D63031" Foreground="White"
-                        FontWeight="SemiBold"
-                        Click="btnEliminar_Click" />
+            <TabItem x:Name="tiInventario" Header="⚙️ Control de Inventario" FontSize="14" FontWeight="SemiBold" Padding="15,6">
+                <Grid Margin="5,15,5,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="320" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
-            </StackPanel>
-        </Grid>
+                    <Border Grid.Column="0" Background="White" CornerRadius="8" Padding="15" Margin="0,0,15,0" BorderBrush="#DFE6E9" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="📦 Registrar Nuevo Artículo" FontSize="16" FontWeight="Bold" Foreground="#0984E3" Margin="0,0,0,15"/>
 
-        <Border Grid.Column="1" Grid.RowSpan="3" 
-                Background="WhiteSmoke" 
-                BorderBrush="#B2BEC3" 
-                BorderThickness="2,0,0,0"
-                CornerRadius="10,0,0,10">
-            <Grid Margin="20">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+                            <TextBlock Text="Nombre del Producto:" FontWeight="SemiBold" Foreground="#2D3436" Margin="0,0,0,4"/>
+                            <TextBox x:Name="txtNombre" Height="30" VerticalContentAlignment="Center" Padding="5,0" Margin="0,0,0,12"/>
 
-                <TextBlock Grid.Row="0"
-                           Text="🛒 Carrito de Venta"
-                           FontSize="22" FontWeight="Bold"
-                           Foreground="#2D3436"
-                           HorizontalAlignment="Center"
-                           Margin="0,0,0,15"/>
+                            <TextBlock Text="Precio de Venta ($):" FontWeight="SemiBold" Foreground="#2D3436" Margin="0,0,0,4"/>
+                            <TextBox x:Name="txtPrecio" Height="30" VerticalContentAlignment="Center" Padding="5,0" Margin="0,0,0,12"/>
 
-                <ListBox x:Name="lstCarrito" 
-                         Grid.Row="1"
-                         BorderBrush="#DFE6E9"
-                         Background="White"
-                         Margin="0,5"/>
+                            <TextBlock Text="Stock Inicial (Unidades):" FontWeight="SemiBold" Foreground="#2D3436" Margin="0,0,0,4"/>
+                            <TextBox x:Name="txtStock" Height="30" VerticalContentAlignment="Center" Padding="5,0" Margin="0,0,0,20"/>
 
-                <StackPanel Grid.Row="2" Margin="0,15,0,0">
-                    <Separator Background="#DFE6E9" Margin="0,0,0,10"/>
-                    <TextBlock x:Name="lblTotal"
-                               Text="Total: $0.00"
-                               FontSize="26" FontWeight="ExtraBold"
-                               Foreground="#27AE60"
-                               HorizontalAlignment="Right"
-                               Margin="0,0,0,15" />
+                            <Button Content="✚ Agregar al Catálogo"
+                                    Height="40" FontSize="13" FontWeight="Bold"
+                                    Background="#0984E3" Foreground="White"
+                                    Click="Button_Click"/>
+                        </StackPanel>
+                    </Border>
 
-                    <Button x:Name="btnFinalizarCompra"
-                            Content="✔ FINALIZAR VENTA"
-                            Height="55"
-                            Background="#2ECC71" Foreground="White"
-                            FontSize="18" FontWeight="Black"
-                            Click="btnFinalizarCompra_Click"/>
-                </StackPanel>
-            </Grid>
-        </Border>
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="🔍 Auditoría de Existencias y Catálogo" FontSize="16" FontWeight="Bold" Foreground="#2D3436" Grid.Row="0"/>
+
+                        <TextBlock x:Name="lblTotalInventario"
+                                   Grid.Row="1"
+                                   Text="Valor de Inventario: $0.00"
+                                   FontSize="14" FontWeight="Bold"
+                                   Foreground="#57606F"
+                                   Margin="0,8,0,8" />
+
+                        <ListBox x:Name="lstProductosAdmin"
+                                 Grid.Row="2"
+                                 Margin="0,0,0,15"
+                                 BorderBrush="#DFE6E9"
+                                 BorderThickness="1" />
+
+                        <StackPanel Grid.Row="3" Orientation="Horizontal">
+                            <Button x:Name="btnRestarStock"
+                                    Content="➖ Restar 1 Unidad (Merma)"
+                                    Width="200" Height="38"
+                                    Background="#E67E22" Foreground="White"
+                                    FontWeight="SemiBold" Margin="0,0,12,0"
+                                    Click="btnRestarStock_Click" />
+
+                            <Button x:Name="btnEliminar"
+                                    Content="🗑 Eliminar del Catálogo"
+                                    Width="200" Height="38"
+                                    Background="#D63031" Foreground="White"
+                                    FontWeight="SemiBold"
+                                    Click="btnEliminar_Click" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>

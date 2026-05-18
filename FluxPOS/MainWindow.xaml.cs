@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Windows;
+using Microsoft.VisualBasic;
+using System.Windows.Controls;
 using System.Windows.Input;
-using SQLite;
 using FluxPOS.Models; // conexión obligatoria con la nueva carpeta de modelos 
 using FluxPOS.Services; //conexión con la carpeta de servicios
 
@@ -72,10 +73,9 @@ namespace FluxPOS
         private void btnRestarStock_Click(object sender, RoutedEventArgs e)
         {
             //verifica seleccion en el inventario
-            if (lstProductos.SelectedIndex != -1)
+            if (lstProductosAdmin.SelectedIndex != -1)
             {
-                int indice = lstProductos.SelectedIndex;
-                Producto seleccionado = listaDeProductos[lstProductos.SelectedIndex];
+                Producto seleccionado = listaDeProductos[lstProductosAdmin.SelectedIndex];
 
                 //solo resta si el stock es mayor a 0
                 if(seleccionado.Stock > 0)
@@ -100,9 +100,9 @@ namespace FluxPOS
 
         private void btnEliminar_Click(object sender, RoutedEventArgs e)
         {
-            if (lstProductos.SelectedIndex != -1)
+            if (lstProductosAdmin.SelectedIndex != -1)
             {
-                Producto seleccionado = listaDeProductos[lstProductos.SelectedIndex];
+                Producto seleccionado = listaDeProductos[lstProductosAdmin.SelectedIndex];
 
                 //seguridad: confirmacion obligatoria antes de romper la bd
                 MessageBoxResult respuesta = MessageBox.Show(
@@ -176,6 +176,58 @@ namespace FluxPOS
             ActualizarTotalVenta(); //reinicia el contador a 0
         }
 
+        private bool _autorizado = false;
+        private void tcPrincipal_SelectionChanged(Object sender, SelectionChangedEventArgs e)
+        {
+            //verifica si el usuario intenta hacer click en la pestaña de admin
+            if(tcPrincipal.SelectedItem == tiInventario && !_autorizado)
+            {
+                //fuerza el regreso temporal a la pestaña de cajero para bloquear la view
+                tcPrincipal.SelectedIndex = 0;
+                //despliega control de acceso licito pidiendo el PIN por codigo
+                //genera un inputbox para no realizar otra interfaz con otra ventana
+                string passwordIngrado = Microsoft.VisualBasic.Interaction.InputBox(
+                    "Ingresa la clave de Administrador para acceder al control de Stock y precios:",
+                    "Acceso Protegido - FluxPOS",
+                    ""
+                );
+                if (passwordIngrado == "1234") //clave corp fijada
+                {
+                    _autorizado = true; //abre cerrojo logico
+                    tcPrincipal.SelectedItem = tiInventario; //mueve fisicamente a pantalla admin
+                    _autorizado=false; //vuelve a cerrar el cerrojo para la prox vez
+                }
+                else
+                {
+                    MessageBox.Show("Clave incorrecta. Acceso denegado.", "Error de Autenticación", MessageBoxButton.OK, MessageBoxImage.Stop);
+                }
+            }
+        }
+
+        private void txtBuscar_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            //captura lo que escribe el usuario y lo pasa a minuscula
+            string criterio = txtBuscar.Text.ToLower().Trim();
+            //limpia visualmente la lista de la pantalla para redibujarla con el filtro
+            lstProductos.Items.Clear();
+
+            //si el buscador esta vacio no muestra nada
+            if (string.IsNullOrEmpty(criterio))
+            {
+                return; //corta la ejecucion aca dejando la lista vacia y limpia
+            }
+
+            //Filtra la lista maestra de la RAM y busca cualquier producto que contenga el criterio escrito
+            foreach(Producto p in listaDeProductos)
+            {
+                if (p.Nombre.ToLower().Contains(criterio))
+                {
+                    //si coincide lo vuelve a dibujar en la pantalla del cajero
+                    lstProductos.Items.Add($"{p.Nombre} - ${p.Precio:N2} [Stock: {p.Stock}]");
+                }
+            }
+        }
+
         #endregion
 
         #region MÉTODOS DE LÓGICA Y CÁLCULO
@@ -183,6 +235,7 @@ namespace FluxPOS
         private void CargarProductos()
         {
             lstProductos.Items.Clear();
+            lstProductosAdmin.Items.Clear();
             listaDeProductos.Clear();
 
             //pido los datos puros al servicio sin saber que provienen de SQLite
@@ -192,8 +245,13 @@ namespace FluxPOS
                 foreach (var p in productosDB)
                 {
                     listaDeProductos.Add(p);
-                    lstProductos.Items.Add($"{p.Nombre} - ${p.Precio:N2} [Stock: {p.Stock}]");
+                    string lineaVisual = ($"{p.Nombre} - ${p.Precio:N2} [Stock: {p.Stock}]");
+
+                    //alimenta de forma simultanea ambas pantallas del sistema
+                    lstProductos.Items.Add(lineaVisual);
+                    lstProductosAdmin.Items.Add(lineaVisual);
                 }
+            txtBuscar_TextChanged(null, null);
             
             ActualizarTotalInventario();
         }
