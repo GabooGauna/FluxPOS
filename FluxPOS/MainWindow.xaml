@@ -44,6 +44,7 @@
         <Grid Grid.Row="2" Grid.Column="0" Margin="15,10,15,15">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
@@ -55,32 +56,39 @@
                     HorizontalAlignment="Left"
                     Click="Button_Click"/>
 
+            <TextBlock x:Name="lblTotalInventario"
+                       Grid.Row="1"
+                       Text="Valor de Inventario: $0.00"
+                       FontSize="14" FontWeight="Bold"
+                       Foreground="#57606F"
+                       HorizontalAlignment="Left"
+                       Margin="0,12,0,4" />
+
             <ListBox x:Name="lstProductos"
-                     Grid.Row="1"
-                     Margin="0,15,0,15"
+                     Grid.Row="2"
+                     Margin="0,5,0,15"
                      BorderBrush="#DFE6E9"
                      BorderThickness="1"
                      MouseDoubleClick="lstProductos_MouseDoubleClick" />
 
-            <Button x:Name="btnEliminar"
-                    Grid.Row="2"
-                    Content="🗑 Eliminar Seleccionado"
-                    Width="180" Height="35"
-                    Background="#D63031" Foreground="White"
-                    HorizontalAlignment="Left"
-                    FontWeight="SemiBold"
-                    Click="btnEliminar_Click"/>
-            
-            <TextBlock x:Name="lblTotalInventario"
-                       Grid.Row="2" Grid.Column="0"
-                       Text="Valor de Inventario: $0.00"
-                       FontSize="15" FontWeight="SemiBold"
-                       Foreground="#57606F"
-                       HorizontalAlignment="Right"
-                       VerticalAlignment="Bottom"
-                       Margin="0,0,10,14"
-                
-                />
+            <StackPanel Grid.Row="3" Orientation="Horizontal">
+
+                <Button x:Name="btnRestarStock"
+                        Content="➖ Restar 1 Unidad"
+                        Width="160" Height="35"
+                        Background="#E67E22" Foreground="White"
+                        FontWeight="SemiBold"
+                        Margin="0,0,10,0"
+                        Click="btnRestarStock_Click" />
+
+                <Button x:Name="btnEliminar"
+                        Content="🗑 Eliminar Catálogo"
+                        Width="160" Height="35"
+                        Background="#D63031" Foreground="White"
+                        FontWeight="SemiBold"
+                        Click="btnEliminar_Click" />
+
+            </StackPanel>
         </Grid>
 
         <Border Grid.Column="1" Grid.RowSpan="3" 

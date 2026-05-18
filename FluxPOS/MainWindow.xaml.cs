@@ -82,7 +82,39 @@ namespace FluxPOS
             }
         }
 
-        // CORRECCIÓN: Cambiado 'EventArgs' por 'RoutedEventArgs' para compatibilidad con WPF 
+        private void btnRestarStock_Click(object sender, RoutedEventArgs e)
+        {
+            //verifica seleccion en el inventario
+            if (lstProductos.SelectedIndex != -1)
+            {
+                int indice = lstProductos.SelectedIndex;
+                Producto productoAEditar = listaDeProductos[indice];
+
+                //solo resta si el stock es mayor a 0
+                if(productoAEditar.Stock > 0)
+                {
+                    productoAEditar.Stock -= 1; //resta una unidad fisica
+                    using(SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
+                    {
+                        //se guarda el cambio permanentemente en el disco
+                        conexion.Update(productoAEditar);
+                    }
+
+                    MessageBox.Show($"Ajuste de Stock: Se descontó 1 unidad de '{productoAEditar.Nombre}'. Nuevo Stock: {productoAEditar.Stock}");
+                    //refresca la pantalla y recalcula el valor de inventario
+                    CargarProductos();
+                }
+                else
+                {
+                    MessageBox.Show($"El producto '{productoAEditar.Nombre}' ya se encuentra en 0 unidades. No es posible restar más.");
+                }
+            }
+            else
+            {
+                MessageBox.Show("Por favor, selecciona un producto del inventario para restar unidades.");
+            }
+        }
+
         private void btnEliminar_Click(object sender, RoutedEventArgs e)
         {
             if (lstProductos.SelectedIndex != -1)
@@ -90,13 +122,24 @@ namespace FluxPOS
                 int indice = lstProductos.SelectedIndex;
                 Producto productoABorrar = listaDeProductos[indice];
 
-                using (SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
-                {
-                    conexion.Delete(productoABorrar);
-                }
+                //seguridad: confirmacion obligatoria antes de romper la bd
+                MessageBoxResult respuesta = MessageBox.Show(
+                        $"¿Está seguro de eliminar '{productoABorrar.Nombre}'?\nEsta acción lo borrará permanentemente de tu catálogo y del historial del inventario.",
+                        "ADVERTENCIA CRÍTICA",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning
+                );
 
-                MessageBox.Show($"Producto '{productoABorrar.Nombre}' eliminado correctamente.");
-                CargarProductos();
+                if(respuesta == MessageBoxResult.Yes)
+                {
+                    using (SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
+                    {
+                        conexion.Delete(productoABorrar);
+                    }
+
+                    MessageBox.Show($"El artículo '{productoABorrar.Nombre}' fue removito exitosamente del sistema.");
+                    CargarProductos();
+                }
             }
             else
             {
