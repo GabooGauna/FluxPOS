@@ -4,7 +4,9 @@ using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using SQLite;
-using FluxPOS.Models; // Conexión obligatoria con la nueva carpeta de modelos 
+using FluxPOS.Models; // conexión obligatoria con la nueva carpeta de modelos 
+using FluxPOS.Services; //conexión con la carpeta de servicios
+
 namespace FluxPOS
 {
     /// <summary>
@@ -12,11 +14,8 @@ namespace FluxPOS
     /// </summary>
     public partial class MainWindow : Window
     {
-        // Definimos la ubicación del archivo de la base de datos de manera segura y fija 
-        private readonly string rutaBaseDeDatos = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "FluxPOS.db"
-        );
+        // instancio el servicio como unico motor de datos e inteligencia
+        private readonly InventarioService _inventarioService = new InventarioService();
 
         // Listas de memoria RAM protegidas con readonly 
         private readonly List<Producto> listaDeProductos = new List<Producto>();
@@ -25,15 +24,6 @@ namespace FluxPOS
         public MainWindow()
         {
             InitializeComponent();
-
-            // Se crea la conexión y la tabla si no existen al iniciar la app 
-            using (SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
-            {
-                conexion.CreateTable<Producto>(); //tabla inventario
-                conexion.CreateTable<Venta>(); //tabla para historial de ventas. Tickets (maestro)
-                conexion.CreateTable<DetalleVenta>(); //renglones de Productos (tabla intermedia)
-            }
-
             CargarProductos();
         }
 
@@ -54,17 +44,14 @@ namespace FluxPOS
                         Stock = stockFinal //se guarda el stock inicial
                     };
 
-                    // Persistencia: Guardado físico en SQLite 
-                    using (SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
-                    {
-                        conexion.Insert(nuevoProducto);
-                    }
+                    // Persistencia: delega el guardado fisico al servicio 
+                    _inventarioService.RegistrarProducto(nuevoProducto);
 
                     // Actualización inmediata de la interfaz de usuario mostrando las unidades disponibles 
                     listaDeProductos.Add(nuevoProducto);
                     lstProductos.Items.Add($"{nuevoProducto.Nombre} - ${nuevoProducto.Precio:N2} [Stock: {nuevoProducto.Stock}]");
 
-                    ActualizarTotal();
+                    ActualizarTotalInventario();
 
                     // Limpieza de campos para el siguiente registro 
                     txtNombre.Clear();
@@ -88,25 +75,21 @@ namespace FluxPOS
             if (lstProductos.SelectedIndex != -1)
             {
                 int indice = lstProductos.SelectedIndex;
-                Producto productoAEditar = listaDeProductos[indice];
+                Producto seleccionado = listaDeProductos[lstProductos.SelectedIndex];
 
                 //solo resta si el stock es mayor a 0
-                if(productoAEditar.Stock > 0)
+                if(seleccionado.Stock > 0)
                 {
-                    productoAEditar.Stock -= 1; //resta una unidad fisica
-                    using(SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
-                    {
-                        //se guarda el cambio permanentemente en el disco
-                        conexion.Update(productoAEditar);
-                    }
+                    //delega el decremento matematico y de bd al servicio
+                    _inventarioService.RestarUnidadStock(seleccionado);
 
-                    MessageBox.Show($"Ajuste de Stock: Se descontó 1 unidad de '{productoAEditar.Nombre}'. Nuevo Stock: {productoAEditar.Stock}");
+                    MessageBox.Show($"Ajuste de Stock: Se descontó 1 unidad de '{seleccionado.Nombre}'. Nuevo Stock: {seleccionado.Stock}");
                     //refresca la pantalla y recalcula el valor de inventario
                     CargarProductos();
                 }
                 else
                 {
-                    MessageBox.Show($"El producto '{productoAEditar.Nombre}' ya se encuentra en 0 unidades. No es posible restar más.");
+                    MessageBox.Show($"El producto '{seleccionado.Nombre}' ya se encuentra en 0 unidades. No es posible restar más.");
                 }
             }
             else
@@ -119,12 +102,11 @@ namespace FluxPOS
         {
             if (lstProductos.SelectedIndex != -1)
             {
-                int indice = lstProductos.SelectedIndex;
-                Producto productoABorrar = listaDeProductos[indice];
+                Producto seleccionado = listaDeProductos[lstProductos.SelectedIndex];
 
                 //seguridad: confirmacion obligatoria antes de romper la bd
                 MessageBoxResult respuesta = MessageBox.Show(
-                        $"¿Está seguro de eliminar '{productoABorrar.Nombre}'?\nEsta acción lo borrará permanentemente de tu catálogo y del historial del inventario.",
+                        $"¿Está seguro de eliminar '{seleccionado.Nombre}'?\nEsta acción lo borrará permanentemente de tu catálogo y del historial del inventario.",
                         "ADVERTENCIA CRÍTICA",
                         MessageBoxButton.YesNo,
                         MessageBoxImage.Warning
@@ -132,12 +114,9 @@ namespace FluxPOS
 
                 if(respuesta == MessageBoxResult.Yes)
                 {
-                    using (SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
-                    {
-                        conexion.Delete(productoABorrar);
-                    }
+                    _inventarioService.EliminarProducto(seleccionado);
 
-                    MessageBox.Show($"El artículo '{productoABorrar.Nombre}' fue removito exitosamente del sistema.");
+                    MessageBox.Show($"El artículo '{seleccionado.Nombre}' fue removito exitosamente del sistema.");
                     CargarProductos();
                 }
             }
@@ -182,67 +161,11 @@ namespace FluxPOS
                 totalVenta += p.Precio;
             }
 
-            //fabrica el objeto venta (ticket) con los datos listos
-            Venta nuevaVenta = new Venta
-            {
-                Fecha = DateTime.Now, //captura la fecha y hora actual de la computadora
-                Total = totalVenta
-            };
-
-            //se abre una conexion segura y guarda fisicamente en el disco duro
-            using (SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
-            {
-                conexion.Insert(nuevaVenta);
-                /*procesar el stock y los detalles
-                para no repetir el mismo producto, se crea un diccionario temporal en la RAM
-                teniendo como clave la ID del Producto, el valor va a ser un objeto DetalleVenta agrupado*/
-                Dictionary<int, DetalleVenta> detallesAgrupados = new Dictionary<int, DetalleVenta>();
-
-                foreach (Producto p in listaCarrito)
-                {
-                    if (detallesAgrupados.ContainsKey(p.Id))
-                    {
-                        //si el producto ya aparecio en el carrito, le sumamos 1 a la cantidad de ese renglon
-                        detallesAgrupados[p.Id].Cantidad += 1;
-                    }
-                    else
-                    {
-                        //si es la primera vez que aparece el producto en el ticket, fabrica su renglon historico
-                        DetalleVenta nuevoRenglon = new DetalleVenta
-                        {
-                            VentaId = nuevaVenta.Id, //enlaza el renglon con el ID del ticket recien generado
-                            ProductoId = p.Id,
-                            NombreProducto = p.Nombre,
-                            Cantidad = 1, //inicia con la primera unidad
-                            PrecioCobrado = p.Precio //congela el precio actual por seguridad historica
-                        };
-                        detallesAgrupados.Add(p.Id, nuevoRenglon);
-                    }
-                }
-
-                //ahora recorre los detalles agrupados para impactar fisicamente la db
-                foreach(var par in detallesAgrupados)
-                {
-                    DetalleVenta detalleAFijar = par.Value;
-                    // a) graba de forma persistente el renglón en la tabla intermedia de SQLite
-                    conexion.Insert(detalleAFijar);
-
-                    // b) ALGORITMO DE DESCUENTO: busca el producto real en el inventario físico mediante su ID 
-                    Producto productoEnInventario = conexion.Table<Producto>().FirstOrDefault(x => x.Id == detalleAFijar.ProductoId);
-
-                    if(productoEnInventario != null)
-                    {
-                        //resta las unidades que el cliente compro del stock actual en la bd
-                        productoEnInventario.Stock -= detalleAFijar.Cantidad;
-
-                        //actualiza el producto con su nuevo stock modificado
-                        conexion.Update(productoEnInventario);
-                    }
-                }
-            }
+            //delega la transaccion de guardado masuvo y descuento al servicio
+            _inventarioService.FinalizarVenta(listaCarrito, totalVenta, out int ticketGeneradoId);
 
             //avisa al usuario del exito de la transaccion
-            MessageBox.Show($"¡Venta realizada con éxito!\nTicket N°: {nuevaVenta.Id}\nTotal Cobrado: ${totalVenta:N2}\n\nEl stock ha sido actualizado correctamente.");
+            MessageBox.Show($"¡Venta realizada con éxito!\nTicket N°: {ticketGeneradoId}\nTotal Cobrado: ${totalVenta:N2}\n\nEl stock ha sido actualizado correctamente.");
 
             //limpia el carrito (RAM e interfaz) para la proxima venta
             listaCarrito.Clear();
@@ -259,23 +182,23 @@ namespace FluxPOS
 
         private void CargarProductos()
         {
-            using (SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
-            {
-                var productosDeBaseDeDatos = conexion.Table<Producto>().ToList();
+            lstProductos.Items.Clear();
+            listaDeProductos.Clear();
 
-                lstProductos.Items.Clear();
-                listaDeProductos.Clear();
+            //pido los datos puros al servicio sin saber que provienen de SQLite
+            var productosDB = _inventarioService.ObtenerProductos();
 
-                foreach (var p in productosDeBaseDeDatos)
+
+                foreach (var p in productosDB)
                 {
                     listaDeProductos.Add(p);
                     lstProductos.Items.Add($"{p.Nombre} - ${p.Precio:N2} [Stock: {p.Stock}]");
                 }
-            }
-            ActualizarTotal();
+            
+            ActualizarTotalInventario();
         }
 
-        private void ActualizarTotal()
+        private void ActualizarTotalInventario()
         {
             decimal sumaTotalInventario = 0;
             foreach (Producto p in listaDeProductos)
