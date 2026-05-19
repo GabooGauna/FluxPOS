@@ -58,15 +58,11 @@ namespace FluxPOS.Services
 
         public void EliminarProducto (Producto producto)
         {
-            //validar que haya algo en el carrito
-            if (producto.Stock > 0)
-            {
-                producto.Stock -= 1;
                 using (SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
                 {
-                    conexion.Update(producto);
+                    //remueve permamentemente la fila mediante su id
+                    conexion.Delete(producto);
                 }
-            }
         }
 
         public void FinalizarVenta(List<Producto> carrito, decimal totalVenta, out int ticketId)
@@ -126,6 +122,50 @@ namespace FluxPOS.Services
                         conexion.Update(prodInve);
                     }
                 }
+            }
+        }
+
+        ///<summary>
+        /// Escanea la tabla Venta y suma los totales de cada transaccion cobrada
+        /// </summary>
+        public decimal ObtenerGananciasTotales()
+        {
+            using(SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
+            {
+                //Recupera todas las ventas guardadas historicamente
+                var ventas = conexion.Table<Venta>().ToList();
+
+                decimal totalAcumulado = 0;
+                foreach(var v in ventas)
+                {
+                    totalAcumulado += v.Total;
+                }
+                return totalAcumulado;
+            }
+        }
+        /// <summary>
+        /// Cuenta el volumen total de transacciones o tickets históricos del negocio.
+        /// </summary>
+        public int ObtenerCantidadVentas()
+        {
+            using (SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
+            {
+                //retorna el conteo directo de filas en la tabla venta
+                return conexion.Table<Venta>().Count();
+            }
+        }
+        /// <summary>
+        /// Filtra y retorna los productos que se encuentran en riesgo inminente de quiebre de stock.
+        /// </summary>
+        // <param name="limiteCritico">Cantidad límite (Ej: 2 unidades o menos)</param>
+        public List<Producto> ObtenerProductosStockCritico(int limiteCritico)
+        {
+            using(SQLiteConnection conexion = new SQLiteConnection(rutaBaseDeDatos))
+            {
+                //usa una consulta con LINQ para filtrar directamente en la bd
+                return conexion.Table<Producto>()
+                                .Where(p => p.Stock <= limiteCritico)
+                                .ToList();
             }
         }
     }
